@@ -1,4 +1,4 @@
-﻿<File version="3.1">
+﻿<File version="3.2">
   <FileID>c86b38c6-c355-4d3c-97a1-3892e4ed897b</FileID>
   <Preview>iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6AAAAAXNSR0IArs4c6QAAAARnQU1BAACx
 jwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAOkVSURBVHhe7P1ncFXLlueLvo7uL7eiP94PL+Ld
@@ -1086,12 +1086,18 @@ NJBb1lZxmBzUHSTyh0NrKTUwOeiWYPK99Uap5E+9Qlm7zOX7gd1BMv/GNnbhJm7IC3T8iCFL10uf
 BqEv52G+gySPTpYCMUIFi6v8u8y1NBRpQ2PdNR2eN31uFamsQf4laIUhnmt26QdD3X6/FmRXMhrl
 lufVptnc8ivccnBXN1JIb/KXYpC/ui5xQdmzCTfbOM+YWnNW1rLewE1J1kwYgBXSMaJv8T0G2nW8
 ujT7hd/7b4OTGPbY8Kz/6538D22Yxe/MXAAA</Form>
-  <Code><![CDATA[
-$formMitelOption125DHCPHe_Load={
+  <Code><![CDATA[# sort flow for no admin privileges
+
+$formMitelOption125DHCPHe_Load = {
 	#Determine if DHCP is installed on this machine
 	$global:DhcpServerSatus = Get-WindowsFeature -Name DHCP
 	if ($global:DhcpServerSatus.installed)
 	{
+		$AdminPriv = Check-AdminPrivileges
+		if (!($AdminPriv))
+		{
+			$Global:OutBox = 'Administrator privileges are needed to update DHCP settings, use the run as option to allow this functionality'
+		}
 		$global:isDhcpServer = $true
 		#Determine if option 125 already exists
 		$global:MitelOptionPresent = Get-DhcpServerv4OptionDefinition -OptionId 125
@@ -1104,7 +1110,7 @@ $formMitelOption125DHCPHe_Load={
 		{
 			$Global:OutBox += 'Mitel option 125 has been defined"' + "`r`n"
 		}
-		$textboxOutput = $global:OutBox
+		$textboxOutput.Text = $global:OutBox
 		$global:Scopes = Get-DhcpServerv4Scope
 		Update-ComboboxDetails
 	}
@@ -1114,11 +1120,11 @@ $formMitelOption125DHCPHe_Load={
 		$comboboxScope.Enabled = $false
 		$comboboxScope.Text = "DHCP Service Not Installed"
 		$buttonReadDHCPServer.Enabled = $false
+		$buttonUpdateDHCPServer.Enabled = $false
 	}
 	$textboxCallServer2.Enabled = $false
 	$textboxCallServer3.Enabled = $false
 	$textboxCallServer4.Enabled = $false
-	$buttonUpdateDHCPServer.Enabled = $false
 }
 
 #region Control Helper Functions
@@ -1480,8 +1486,9 @@ function Generate-Hex
 	$measureObject = $AsciiString | Measure-Object -Character
 	
 	$hex = [convert]::ToChar(0) + [convert]::ToChar(0) + [convert]::ToChar(4) + [convert]::ToChar(3) + [convert]::ToChar($measureObject.characters) + $AsciiString | Format-Hex
-	$string = ($hex.Bytes | ForEach-Object ToString X2) -join ''
-	return $string
+	$string = ($hex.Bytes | ForEach-Object ToString) -join "`',`'"
+	$finalString = "@('$string')"
+	return $finalString, $hex
 }
 #endregion
 
@@ -1490,8 +1497,10 @@ $buttonGeneratePowershellCommand_Click = {
 	if ($fieldCheck -eq $true)
 	{
 		$hex = Generate-Hex
+		$hexString = $hex[0]
 		$Global:OutBox = 'Add-DhcpServerv4OptionDefinition -Name "Mitel" -OptionId 125 -Type EncapsulatedData -Description "For Mitel IP Phones"' + "`r`n" + "`r`n"
-		$Global:OutBox = $Global:OutBox += "Set-DhcpServerv4OptionValue -ScopeId XXX.XXX.XXX.XXX -OptionID 125 -Value $hex"
+		$Global:OutBox = $Global:OutBox += "`$value = $hexString" + "`r`n" + "`r`n"
+		$Global:OutBox = $Global:OutBox += "Set-DhcpServerv4OptionValue -ScopeId XXX.XXX.XXX.XXX -OptionID 125 -Value `$value"
 		$textboxOutput.Text = $global:OutBox
 	}
 	else
@@ -1502,18 +1511,30 @@ $buttonGeneratePowershellCommand_Click = {
 }
 
 $buttonUpdateDHCPServer_Click = {
-	$hex = Generate-Hex
-	if (!($global:MitelOptionPresent))
+	$fieldCheck = Validate-FinalFields $textboxVlanId.Text $textboxVlanPriorityDefault.Text
+	if ($fieldCheck -eq $true)
 	{
-		Add-DhcpServerv4OptionDefinition -Name "Mitel" -OptionId 125 -Type EncapsulatedData -Description "For Mitel IP Phones"
-		$Global:OutBox = 'Add-DhcpServerv4OptionDefinition -Name "Mitel" -OptionId 125 -Type EncapsulatedData -Description "For Mitel IP Phones"' + "`r`n"
-		$global:OutBox += "Mitel Option added to server"
-		$textboxOutput = $global:OutBox
+		$hex = Generate-Hex
+		$hexString = $hex[0]
+		$global:OutBox = ''
+		$textboxOutput.Text = $global:OutBox
+		if (!($global:MitelOptionPresent))
+		{
+			Add-DhcpServerv4OptionDefinition -Name "Mitel" -OptionId 125 -Type EncapsulatedData -Description "For Mitel IP Phones"
+			$global:OutBox += "Mitel Option added to server" + "`r`n" + "`r`n"
+			$Global:OutBox += 'Add-DhcpServerv4OptionDefinition -Name "Mitel" -OptionId 125 -Type EncapsulatedData -Description "For Mitel IP Phones"' + "`r`n"
+			$textboxOutput.Text = $global:OutBox
+		}
+		Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hex[1].bytes
+		$global:OutBox += "Mitel option added to scope: $global:selectedScope" + "`r`n" + "`r`n"
+		$Global:OutBox += "Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hexString" + "`r`n"
+		$textboxOutput.Text = $global:OutBox
 	}
-	Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hex
-	$Global:OutBox = "Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hex" + "`r`n"
-	$textboxOutput += "Mitel option added to scope: $global:selectedScope"
-	$textboxOutput = $global:OutBox
+	else
+	{
+		$Global:OutBox = 'If VLAN ID is set you must enter a value for defult l2p'
+		$textboxOutput.Text = $global:OutBox
+	}
 }
 
 $comboboxScope_SelectedIndexChanged={
@@ -1531,6 +1552,6 @@ $buttonGeneratePowershellSc_Click={
 	
 }
 ]]></Code>
-  <Mode>0</Mode>
+  <Mode>1</Mode>
   <Assemblies />
 </File>
