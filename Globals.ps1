@@ -128,3 +128,9 @@ function Validate-FinalFields($VlanId, $VlanDefaultPriority)
 		return $true
 	}
 }
+
+function Check-AdminPrivileges
+{
+	$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+	return $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}

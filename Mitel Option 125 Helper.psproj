@@ -8,5 +8,6 @@
     <File Build="0" Shared="True" ReferenceFunction="Invoke-Global_ps1">Globals.ps1</File>
     <File Build="0" ReferenceFunction="Show-MainForm_psf">MainForm.psf</File>
     <File Build="1">.gitignore</File>
+    <File Build="0" ReferenceFunction="Show-RemoteServerConnect_psf">RemoteServerConnect.psf</File>
   </Files>
 </Project>
