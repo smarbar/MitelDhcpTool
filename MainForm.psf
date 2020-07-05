@@ -1519,15 +1519,7 @@ function Read-DhcpServer
 {
 	if ($global:remoteConnection)
 	{
-		if ($global:AdAdministratorDetails)
-		{
-			$currentOptionVal = Get-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionId 125 -CimSession $global:Session
-		}
-		else
-		{
-			$currentOptionVal = Get-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionId 125 -ComputerName $global:remoteServer
-		}
-		
+		$currentOptionVal = Get-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionId 125 -CimSession $global:Session
 	}
 	else
 	{
@@ -1551,6 +1543,8 @@ function Read-DhcpServer
 	}
 	else
 	{
+		$Global:OutBox = ""
+		$textboxOutput.Text = $global:OutBox
 		$res = ($currentOptionVal.value | foreach-object { [char][byte]"$_" }) -join ''
 		$newres = $res -split ';'
 		$tftpsrv = ($newres | select-string -pattern 'sw_tftp=') -replace "sw_tftp=", ""
@@ -1636,20 +1630,22 @@ $buttonUpdateDHCPServer_Click = {
 			{
 				Add-DhcpServerv4OptionDefinition -Name "Mitel" -OptionId 125 -Type EncapsulatedData -Description "For Mitel IP Phones"
 			}
-			$global:OutBox += "Mitel Option added to server" + "`r`n" + "`r`n"
-			$Global:OutBox += 'Add-DhcpServerv4OptionDefinition -Name "Mitel" -OptionId 125 -Type EncapsulatedData -Description "For Mitel IP Phones"' + "`r`n"
+			#$global:OutBox += "Mitel Option added to server" + "`r`n" + "`r`n"
+			$Global:OutBox += 'Vender Option 125 definition added to server'
+			$textboxOutput.Text = $global:OutBox
+			#$Global:OutBox += 'Add-DhcpServerv4OptionDefinition -Name "Mitel" -OptionId 125 -Type EncapsulatedData -Description "For Mitel IP Phones"' + "`r`n"
 			$textboxOutput.Text = $global:OutBox
 		}
 		if ($global:remoteConnection)
 		{
-			Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hex[1].bytes -ComputerName $global:remoteserver
+			Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hex[1].bytes -CimSession $global:Session
 		}
 		else
 		{
 			Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hex[1].bytes
 		}
-		$global:OutBox += "Mitel option added to scope: $global:selectedScope" + "`r`n" + "`r`n"
-		$Global:OutBox += "Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hexString" + "`r`n"
+		$global:OutBox += "Option 125 updated on scope: $global:selectedScope" + "`r`n" + "`r`n"
+		#$Global:OutBox += "Set-DhcpServerv4OptionValue -ScopeId $global:selectedScope -OptionID 125 -Value $hexString" + "`r`n"
 		$textboxOutput.Text = $global:OutBox
 	}
 	else
@@ -1684,6 +1680,8 @@ $buttonConnectToRemoteDHCPS_Click={
 		$buttonUpdateDHCPServer.Enabled = $true
 		$global:remoteConnection = $true
 		$global:MitelOptionPresent = Get-DhcpServerv4OptionDefinition -OptionId 125 -CimSession $global:Session
+		$Global:OutBox = "Connected to $global:remoteServer"
+		$textboxOutput.Text = $global:OutBox
 	}
 }
 
