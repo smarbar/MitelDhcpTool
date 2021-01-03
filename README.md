@@ -1,4 +1,4 @@
-## Welcome to GitHub Pages
+## Mitel DHCP Option 125 helper
 
 You can use the [editor on GitHub](https://github.com/smarbar/MitelDhcpTool/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
 
