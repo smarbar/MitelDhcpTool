@@ -747,12 +747,6 @@ function Show-ConnectButton
 	}
 }
 ]]></Code>
-  <Bookmarks />
-  <BreakPoints>
-    <Line Disabled="False">40</Line>
-    <Line Disabled="False">56</Line>
-  </BreakPoints>
-  <TracePoints />
   <Mode>1</Mode>
   <Assemblies />
 </File>
